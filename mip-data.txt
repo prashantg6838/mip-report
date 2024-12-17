@@ -1,0 +1,80 @@
+WITH extracted_field AS (
+    SELECT 
+        "Declared State",
+        "Project Title" ,
+        "District", 
+        "Block", 
+        "School Name", 
+        "School ID", 
+        Tasks, 
+        COUNT(*) AS Taskcount
+    FROM [dbo].[task-report4]
+    WHERE "Task Evidence" <> 'Null' 
+        AND (
+                Tasks LIKE N'%शिक्षक कक्षा 6%'
+                OR Tasks LIKE N'%शिक्षक कक्षा 7%'
+                OR Tasks LIKE N'%शिक्षक कक्षा 8%'
+            ) 
+        AND "Project completion date of the user" < '2024-11-01'
+    GROUP BY "Declared State","Project Title", "District", "Block", "School Name", "School ID", Tasks
+)
+
+INSERT INTO [dbo].[Modified-task-report4] ("Project Title","Declared State","District", "Block", "School Name", "School ID", "TaskCount")
+SELECT 
+    "Project Title" ,
+    "Declared State",
+    "District", 
+    "Block", 
+    "School Name", 
+    "School ID", 
+    COUNT(*) AS TaskCount
+FROM extracted_field 
+GROUP BY "Declared State","Project Title", "District", "Block", "School Name", "School ID";
+
+
+
+
+
+status-report : 
+INSERT INTO SchoolProjectStatus (
+    District, 
+    Block, 
+    SchoolName, 
+    SchoolID, 
+    TeachersStarted, 
+    TeachersInProgress, 
+    TeachersSubmitted, 
+    GrandTotal, 
+    Complete, 
+    Incomplete
+)
+SELECT 
+    [District],
+    [Block],
+    [School Name],
+    [School ID],
+    SUM(CASE WHEN [Project Status] = 'started' THEN 1 ELSE 0 END) AS 'NO. OF TEACHERS WHO STARTED THE PROJECT',
+    SUM(CASE WHEN [Project Status] = 'inprogress' THEN 1 ELSE 0 END) AS 'NO. OF TEACHERS WHO ARE IN PROGRESS',
+    SUM(CASE WHEN [Project Status] = 'submitted' THEN 1 ELSE 0 END) AS 'NO. OF TEACHERS WHO SUBMITTED THE PROJECT',
+    SUM(
+        CASE WHEN [Project Status] IN ('started', 'inprogress', 'submitted') THEN 1 ELSE 0 END
+    ) AS 'GRAND TOTAL',
+    CASE 
+        WHEN 
+            SUM(CASE WHEN [Project Status] = 'started' THEN 1 ELSE 0 END) = 0 AND 
+            SUM(CASE WHEN [Project Status] = 'inprogress' THEN 1 ELSE 0 END) = 0 AND 
+            SUM(CASE WHEN [Project Status] = 'submitted' THEN 1 ELSE 0 END) > 0 
+        THEN 1 ELSE 0 
+    END AS 'COMPLETE',
+    CASE 
+        WHEN 
+            SUM(CASE WHEN [Project Status] = 'started' THEN 1 ELSE 0 END) = 0 AND 
+            SUM(CASE WHEN [Project Status] = 'inprogress' THEN 1 ELSE 0 END) = 0 AND 
+            SUM(CASE WHEN [Project Status] = 'submitted' THEN 1 ELSE 0 END) > 0 
+        THEN 0 ELSE 1 
+    END AS 'INCOMPLETE'
+FROM 
+    [dbo].[status-report]
+WHERE [user type] = 'teacher'
+GROUP BY 
+    [District], [Block], [School Name], [School ID];
