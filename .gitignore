@@ -1,1 +1,8 @@
-my_env 
+myenv
+__pycache__
+status-report
+task-report
+mip-data.txt
+output_file.csv
+task-report.ipynb
+test.ipynb
