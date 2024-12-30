@@ -1,6 +1,8 @@
 import streamlit as st
 from main import process_files
 import os
+import pandas as pd
+import tempfile
 
 def main():
     # Set up the page
@@ -48,33 +50,49 @@ def main():
     st.title("File Processor")
 
     # Input fields
-    input_path = st.text_input("Input Path (File or Folder):", placeholder="Enter input file or folder path")
-    output_path = st.text_input("Output Path (File or Folder):", placeholder="Enter output file or folder path")
+    input_file = st.file_uploader("Choose an input CSV file", type=["csv"])
     report_type = st.selectbox("Select Report Type:", ["Task Report", "Status Report"])
     start_date = st.date_input("Start Date:")
     end_date = st.date_input("End Date:")
 
     # Process button
     if st.button("Process"):
-        if input_path and output_path:
-            if os.path.isfile(input_path) or os.path.isdir(input_path):
-                try:
-                    # Convert dates to strings
-                    start_date_str = start_date.strftime("%Y-%m-%d")
-                    end_date_str = end_date.strftime("%Y-%m-%d")
-                    print(f"start_date = {start_date_str}")
-                    print(f"end_date = {end_date_str}")
-                    print(f"report_type = {report_type}")
-                    print(f"input_path = {input_path}")
-                    print(f"output_path = {output_path}")
-                    process_files(input_path, output_path, start_date_str, end_date_str, report_type)
-                    st.success("File processed successfully!")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-            else:
-                st.error("Invalid input path. Please enter a valid file or folder path.")
+        if input_file:
+            try:
+                # Save the uploaded file to a temporary location
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_input_file:
+                    tmp_input_file.write(input_file.getbuffer())
+                    input_path = tmp_input_file.name
+
+                # Create a temporary file for the output
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_output_file:
+                    output_path = tmp_output_file.name
+
+                # Convert dates to strings
+                start_date_str = start_date.strftime("%Y-%m-%d")
+                end_date_str = end_date.strftime("%Y-%m-%d")
+                print(f"start_date = {start_date_str}")
+                print(f"end_date = {end_date_str}")
+                print(f"report_type = {report_type}")
+                print(f"input_path = {input_path}")
+                print(f"output_path = {output_path}")
+
+                # Process the files
+                process_files(input_path, output_path, start_date_str, end_date_str, report_type)
+
+                # Read the processed file and provide a download link
+                processed_df = pd.read_csv(output_path)
+                st.success("File processed successfully!")
+                st.download_button(
+                    label="Download Processed File",
+                    data=processed_df.to_csv(index=False).encode('utf-8'),
+                    file_name='processed_file.csv',
+                    mime='text/csv'
+                )
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
         else:
-            st.error("Please provide both input path and output file.")
+            st.error("Please upload an input CSV file.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
