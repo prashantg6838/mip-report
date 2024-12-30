@@ -32,7 +32,7 @@ def process_status_report_files(input_file_path, output_file_path, start_date, e
 
     data = pd.concat(dataframes, ignore_index=True)
 
-    # data = data[data['User sub type'] == 'TEACHER']
+    data = data[data['User sub type'] == 'TEACHER']
         
     filtered_df = data[
     (data["Project completion date of the user"] > start_date) & 
@@ -40,11 +40,11 @@ def process_status_report_files(input_file_path, output_file_path, start_date, e
     ]
 
     transformed_data = filtered_df.groupby(['District', 'Block', 'School Name', 'School ID'], as_index=False).agg(
-        TeachersStarted=('Project Status', lambda x: sum(x == 'started')),
-        TeachersInProgress=('Project Status', lambda x: sum(x == 'inProgress')),
-        TeachersSubmitted=('Project Status', lambda x: sum(x == 'submitted'))
+        TeachersStarted=('Project Status', lambda x: sum(x.str.strip().str.lower() == 'started')),
+        TeachersInProgress=('Project Status', lambda x: sum(x.str.strip().str.lower() == 'inprogress')),
+        TeachersSubmitted=('Project Status', lambda x: sum(x.str.strip().str.lower() == 'submitted'))
     )
-
+    print(transformed_data)
     transformed_data['GRAND TOTAL'] = (
         transformed_data['TeachersStarted'] +
         transformed_data['TeachersInProgress'] +
