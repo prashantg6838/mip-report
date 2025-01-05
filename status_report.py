@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-def process_status_report_files(input_path, output_file_path, start_date, end_date) -> None:
+def process_status_report_files(input_path, output_file_path, end_date) -> None:
     if os.path.isdir(input_path):
         csv_files = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith('.csv')]
         if not csv_files:
@@ -34,11 +34,18 @@ def process_status_report_files(input_path, output_file_path, start_date, end_da
     data = pd.concat(dataframes, ignore_index=True)
 
     data = data[data['User sub type'] == 'TEACHER']
-        
+
+    # Replace 'Null' with pd.NA
+    data['Project completion date of the user'] = data['Project completion date of the user'].replace('Null', pd.NA)
+    data['Project completion date of the user'] = pd.to_datetime(data['Project completion date of the user'], errors='coerce')
+
+    # Filter out rows where "Project completion date of the user" is NaT
     filtered_df = data[
-        (data["Project completion date of the user"] > start_date) & 
+        (data["Project completion date of the user"].isna()) |
         (data["Project completion date of the user"] < end_date)
     ]
+    
+    print(filtered_df)
 
     transformed_data = filtered_df.groupby(['District', 'Block', 'School Name', 'School ID'], as_index=False).agg(
         TeachersStarted=('Project Status', lambda x: sum(x.str.strip().str.lower() == 'started')),
@@ -68,3 +75,6 @@ def process_status_report_files(input_path, output_file_path, start_date, end_da
 
     transformed_data.to_csv(output_file_path, index=False)
     print(f"Data transformation complete. Output saved to {output_file_path}")
+
+if __name__ == "__main__":
+    process_status_report_files("input_path", "output_file_path", "end_date")

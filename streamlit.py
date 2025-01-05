@@ -1,8 +1,8 @@
 import streamlit as st
-from main import process_files
-import os
 import pandas as pd
 import tempfile
+import os
+from main import process_files
 
 def main():
     # Set up the page
@@ -46,39 +46,40 @@ def main():
     )
 
     # Create the app UI
-    st.markdown('<div class="container">', unsafe_allow_html=True)
+    # st.markdown('<div class="container">', unsafe_allow_html=True)
     st.title("File Processor")
 
     # Input fields
-    input_file = st.file_uploader("Choose an input CSV file", type=["csv"])
+    input_files = st.file_uploader("Choose input CSV files", type=["csv"], accept_multiple_files=True)
     report_type = st.selectbox("Select Report Type:", ["Task Report", "Status Report"])
-    start_date = st.date_input("Start Date:")
-    end_date = st.date_input("End Date:")
-
+    # start_date = st.date_input("Start Date:")
+    end_date = st.date_input("Project completion date of the user should be before:")
     # Process button
     if st.button("Process"):
-        if input_file:
+        if input_files:
             try:
-                # Save the uploaded file to a temporary location
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_input_file:
-                    tmp_input_file.write(input_file.getbuffer())
-                    input_path = tmp_input_file.name
+                input_paths = []
+                for input_file in input_files:
+                    # Save each uploaded file to a temporary location
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_input_file:
+                        tmp_input_file.write(input_file.getbuffer())
+                        input_paths.append(tmp_input_file.name)
 
                 # Create a temporary file for the output
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_output_file:
                     output_path = tmp_output_file.name
 
                 # Convert dates to strings
-                start_date_str = start_date.strftime("%Y-%m-%d")
+                # start_date_str = start_date.strftime("%Y-%m-%d")
                 end_date_str = end_date.strftime("%Y-%m-%d")
-                print(f"start_date = {start_date_str}")
+                # print(f"start_date = {start_date_str}")
                 print(f"end_date = {end_date_str}")
                 print(f"report_type = {report_type}")
-                print(f"input_path = {input_path}")
+                print(f"input_paths = {input_paths}")
                 print(f"output_path = {output_path}")
 
                 # Process the files
-                process_files(input_path, output_path, start_date_str, end_date_str, report_type)
+                process_files(input_paths, output_path, end_date_str, report_type)
 
                 # Read the processed file and provide a download link
                 processed_df = pd.read_csv(output_path)
@@ -92,7 +93,7 @@ def main():
             except Exception as e:
                 st.error(f"Error: {str(e)}")
         else:
-            st.error("Please upload an input CSV file.")
+            st.error("Please upload input CSV files.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
