@@ -1,19 +1,10 @@
 import pandas as pd
 import os
 
-def process_status_report_files(input_path, output_file_path, end_date) -> None:
-    if os.path.isdir(input_path):
-        csv_files = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith('.csv')]
-        if not csv_files:
-            raise ValueError("No CSV files found in the input directory.")
-    elif os.path.isfile(input_path) and input_path.endswith('.csv'):
-        csv_files = [input_path]
-    else:
-        raise FileNotFoundError(f"Input path is not a valid directory or CSV file: {input_path}")
-
+def process_status_report_files(input_file_path, output_file_path, end_date) -> None:
     dataframes = []
 
-    for file in csv_files:
+    for file in input_file_path:
         df = pd.read_csv(file)
         dataframes.append(df)
 
@@ -44,8 +35,6 @@ def process_status_report_files(input_path, output_file_path, end_date) -> None:
         (data["Project completion date of the user"].isna()) |
         (data["Project completion date of the user"] < end_date)
     ]
-    
-    print(filtered_df)
 
     transformed_data = filtered_df.groupby(['District', 'Block', 'School Name', 'School ID'], as_index=False).agg(
         TeachersStarted=('Project Status', lambda x: sum(x.str.strip().str.lower() == 'started')),
@@ -77,4 +66,4 @@ def process_status_report_files(input_path, output_file_path, end_date) -> None:
     print(f"Data transformation complete. Output saved to {output_file_path}")
 
 if __name__ == "__main__":
-    process_status_report_files("input_path", "output_file_path", "end_date")
+    process_status_report_files("input_file_path", "output_file_path", "end_date")
